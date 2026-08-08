@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { formatTokenCount } from "./format-token-count";
+import { type MessageKey, translate, useI18n } from "./i18n";
 
 export type TokenUsageRow = {
   model: string;
@@ -28,7 +29,9 @@ export type TokenUsage = {
 
 export function TokenUsageUi(props: { tokenUsage?: TokenUsage; expanded: boolean }) {
   const { tokenUsage, expanded } = props;
-  
+  const { lang } = useI18n();
+  const t = (key: MessageKey) => translate(lang, key);
+
   const totals = tokenUsage?.totals || { input: 0, output: 0, reasoning: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
   const rows = tokenUsage?.rows || [];
 
@@ -36,7 +39,7 @@ export function TokenUsageUi(props: { tokenUsage?: TokenUsage; expanded: boolean
     React.createElement("table", { className: "table" },
       React.createElement("tbody", null,
         React.createElement("tr", null,
-          React.createElement("td", { className: "mono" }, "TOTAL"),
+          React.createElement("td", { className: "mono" }, t("tokens.total")),
           React.createElement("td", { className: "mono" }, formatTokenCount(totals.input)),
           React.createElement("td", { className: "mono" }, formatTokenCount(totals.output)),
           React.createElement("td", { className: "mono" }, formatTokenCount(totals.reasoning)),
@@ -46,7 +49,7 @@ export function TokenUsageUi(props: { tokenUsage?: TokenUsage; expanded: boolean
         expanded && rows.length === 0 ? 
           React.createElement("tr", null,
             React.createElement("td", { colSpan: 6, className: "muted", style: { padding: 16 } },
-              "No token usage detected yet."
+              t("tokens.empty")
             )
           ) : null,
         expanded ? rows.map((row) =>

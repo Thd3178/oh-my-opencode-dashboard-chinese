@@ -3,11 +3,18 @@ import { computeWaitingDing } from "./ding-policy";
 import { playDing, unlockAudio } from "./sound";
 import { computeStackedSegments } from "./timeseries-stacked";
 import { formatTokenCount } from "./format-token-count";
+import {
+  type Lang,
+  type MessageKey,
+  localizeKnown,
+  translate,
+  translateFmt,
+  translateStatus,
+  useI18n,
+} from "./i18n";
 
 const APP_VERSION =
   typeof __APP_VERSION__ === "string" && __APP_VERSION__.trim().length > 0 ? __APP_VERSION__ : "0.0.0";
-
-const APP_TITLE = `Agent Dashboard (v${APP_VERSION})`;
 
 const SELECTED_SOURCE_ID_STORAGE_KEY = "omo-dashboard:selectedSourceId";
 
@@ -155,6 +162,9 @@ export function computeMainAgentsScaleMax(params: {
 }
 
 export function TimeSeriesActivitySection(props: { timeSeries: TimeSeries }) {
+  const { lang } = useI18n();
+  const tr = (key: MessageKey) => translate(lang, key);
+
   const timeSeriesById = new Map<TimeSeriesSeriesId, TimeSeriesSeries>();
   for (const s of props.timeSeries.series) {
     if (s && typeof s.id === "string") {
@@ -173,8 +183,8 @@ export function TimeSeriesActivitySection(props: { timeSeries: TimeSeries }) {
   return (
     <section className="timeSeries">
       <div className="timeSeriesHeader">
-        <h2 className="timeSeriesTitle">Time-series activity</h2>
-        <p className="timeSeriesSub">Last 5 minutes</p>
+        <h2 className="timeSeriesTitle">{tr("timeseries.title")}</h2>
+        <p className="timeSeriesSub">{tr("timeseries.sub")}</p>
       </div>
 
       <div className="timeSeriesRows">
@@ -182,11 +192,11 @@ export function TimeSeriesActivitySection(props: { timeSeries: TimeSeries }) {
           [
             {
               kind: "main-agents" as const,
-              label: "Main agents" as const,
+              label: tr("timeseries.mainAgents"),
             },
             {
               kind: "single" as const,
-              label: "background tasks (total)",
+              label: tr("timeseries.backgroundTotal"),
               tone: "muted" as const,
               overlayId: "background-total" as const,
               baseline: false,
@@ -355,7 +365,7 @@ export function TimeSeriesActivitySection(props: { timeSeries: TimeSeries }) {
           <span className="timeSeriesAxisBottomLabel">-3m</span>
           <span className="timeSeriesAxisBottomLabel">-2m</span>
           <span className="timeSeriesAxisBottomLabel">-1m</span>
-          <span className="timeSeriesAxisBottomLabel">Now</span>
+          <span className="timeSeriesAxisBottomLabel">{tr("timeseries.now")}</span>
         </div>
       </div>
     </section>
@@ -560,8 +570,8 @@ function clampPercent(value: number): number {
   return Math.max(0, Math.min(100, value));
 }
 
-function formatTime(ts: number | null): string {
-  if (!ts) return "never";
+function formatTime(ts: number | null, neverLabel: string): string {
+  if (!ts) return neverLabel;
   try {
     return new Intl.DateTimeFormat(undefined, {
       year: "numeric",
@@ -706,18 +716,20 @@ export function SourceSelect(props: {
   onChange: (nextSourceId: string) => void;
 }) {
   const { sources, selectedSourceId, disabled, onChange } = props;
+  const { lang } = useI18n();
+  const tr = (key: MessageKey) => translate(lang, key);
   const value = selectedSourceId || sources[0]?.id || "";
   const noSources = sources.length === 0;
 
   return (
     <select
       className="field"
-      aria-label="Source"
+      aria-label={tr("topbar.sourceAria")}
       value={value}
       disabled={disabled || noSources || !value}
       onChange={(e) => onChange(e.currentTarget.value)}
     >
-      {noSources ? <option value="">(no sources)</option> : null}
+      {noSources ? <option value="">{tr("topbar.noSources")}</option> : null}
       {sources.map((s) => (
         <option key={s.id} value={s.id}>
           {s.label}
@@ -1022,6 +1034,9 @@ function toDashboardPayload(json: unknown): DashboardPayload {
 
 export { toDashboardPayload };
 export default function App() {
+  const { lang, setLang } = useI18n();
+  const tr = (key: MessageKey) => translate(lang, key);
+
   const [connected, setConnected] = React.useState(false);
   const [data, setData] = React.useState<DashboardPayload>(FALLBACK_DATA);
   const [lastUpdate, setLastUpdate] = React.useState<number | null>(null);
@@ -1099,8 +1114,9 @@ export default function App() {
 
   React.useEffect(() => {
     if (typeof document === "undefined") return;
-    document.title = APP_TITLE;
-  }, []);
+    document.title = `${translate(lang, "misc.appTitle")} (v${APP_VERSION})`;
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+  }, [lang]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1391,7 +1407,7 @@ export default function App() {
     }
   }
 
-  const liveLabel = connected ? "Live" : "Disconnected";
+  const liveLabel = connected ? tr("topbar.live") : tr("topbar.disconnected");
   const liveTone = connected ? "teal" : "sand";
 
 
@@ -1531,10 +1547,12 @@ export default function App() {
           <div className="brand">
             <div className="brandMark" aria-hidden="true" />
             <div className="brandText">
-              <h1>{APP_TITLE}</h1>
+              <h1>
+                {tr("misc.appTitle")} (v{APP_VERSION})
+              </h1>
               <p>
-                Live view (no prompts or tool arguments rendered).
-                {!connected && errorHint ? <span className="hint"> - {errorHint}</span> : null}
+                {tr("topbar.subtitle")}
+                {!connected && errorHint ? <span className="hint"> - {localizeKnown(lang, errorHint)}</span> : null}
               </p>
             </div>
           </div>
@@ -1556,8 +1574,8 @@ export default function App() {
               type="button"
               onClick={toggleTheme}
               aria-pressed={theme === "dark"}
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              aria-label={theme === "dark" ? tr("topbar.theme.light") : tr("topbar.theme.dark")}
+              title={theme === "dark" ? tr("topbar.theme.light") : tr("topbar.theme.dark")}
             >
               {theme === "dark" ? (
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1580,23 +1598,37 @@ export default function App() {
             <button
               className="button"
               type="button"
+              onClick={() => setLang(lang === "zh" ? "en" : "zh")}
+              aria-pressed={lang === "zh"}
+              aria-label={lang === "zh" ? tr("topbar.lang.toEn") : tr("topbar.lang.toZh")}
+              title={lang === "zh" ? tr("topbar.lang.toEn") : tr("topbar.lang.toZh")}
+            >
+              {lang === "zh" ? tr("topbar.lang.en") : tr("topbar.lang.zh")}
+            </button>
+            <button
+              className="button"
+              type="button"
               onClick={() => void enableSound(!soundEnabled)}
               aria-pressed={soundEnabled}
-              title={soundEnabled ? "Disable sound" : "Enable sound"}
+              title={soundEnabled ? tr("topbar.sound.disable") : tr("topbar.sound.enable")}
             >
-              Sound {soundEnabled ? (soundUnlocked ? "On" : "On") : "Off"}
+              {tr("topbar.sound")} {soundEnabled ? tr("topbar.sound.on") : tr("topbar.sound.off")}
             </button>
             <button
               className="button"
               type="button"
               onClick={() => void playDing("task")}
-              title="Play ding"
-              aria-label="Play ding sound"
+              title={tr("topbar.dingTitle")}
+              aria-label={tr("topbar.dingAria")}
             >
-              Ding
+              {tr("topbar.ding")}
             </button>
             <button className="button" type="button" onClick={onCopyRawJson}>
-              {copyState === "ok" ? "Copied" : copyState === "err" ? "Copy failed" : "Copy raw JSON"}
+              {copyState === "ok"
+                ? tr("topbar.copy.ok")
+                : copyState === "err"
+                  ? tr("topbar.copy.err")
+                  : tr("topbar.copy.idle")}
             </button>
           </div>
         </header>
@@ -1607,44 +1639,46 @@ export default function App() {
           <section className="grid2">
             <article className="card">
               <div className="cardHeader">
-                <h2>Main session</h2>
-                <span className={`pill pill-${statusTone(data.mainSession.statusPill)}`}>{data.mainSession.statusPill}</span>
+                <h2>{tr("mainSession.title")}</h2>
+                <span className={`pill pill-${statusTone(data.mainSession.statusPill)}`}>
+                  {translateStatus(lang, data.mainSession.statusPill)}
+                </span>
               </div>
               <div className="kv">
                 <div className="kvRow">
-                  <div className="kvKey">AGENT</div>
-                  <div className="kvVal mono">{data.mainSession.agent}</div>
+                  <div className="kvKey">{tr("mainSession.agent")}</div>
+                  <div className="kvVal mono">{localizeKnown(lang, data.mainSession.agent)}</div>
                 </div>
                 <div className="kvRow">
-                  <div className="kvKey">CURRENT TOOL</div>
+                  <div className="kvKey">{tr("mainSession.currentTool")}</div>
                   <div className="kvVal mono">{data.mainSession.currentTool}</div>
                 </div>
                 <div className="kvRow">
-                  <div className="kvKey">CURRENT MODEL</div>
+                  <div className="kvKey">{tr("mainSession.currentModel")}</div>
                   <div className="kvVal mono">{data.mainSession.currentModel}</div>
                 </div>
                 <div className="kvRow">
-                  <div className="kvKey">LAST UPDATED</div>
-                  <div className="kvVal">{data.mainSession.lastUpdatedLabel}</div>
+                  <div className="kvKey">{tr("mainSession.lastUpdated")}</div>
+                  <div className="kvVal">{localizeKnown(lang, data.mainSession.lastUpdatedLabel)}</div>
                 </div>
               </div>
               <div className="divider" />
               <div className="kvRow">
-                <div className="kvKey">SESSION</div>
-                <div className="kvVal mono">{data.mainSession.session}</div>
+                <div className="kvKey">{tr("mainSession.session")}</div>
+                <div className="kvVal mono">{localizeKnown(lang, data.mainSession.session)}</div>
               </div>
             </article>
 
             <article className="card">
               <div className="cardHeader">
-                <h2>Plan progress and todos</h2>
+                <h2>{tr("plan.title")}</h2>
                 <span className="muted mono">
                   {planTodosView === "plan"
-                    ? `todos ${todoSummary.completed}/${todoSummary.total || 0}`
-                    : `plan ${data.planProgress.completed}/${data.planProgress.total || 0}`}
+                    ? `${tr("plan.todosCount")} ${todoSummary.completed}/${todoSummary.total || 0}`
+                    : `${tr("plan.planCount")} ${data.planProgress.completed}/${data.planProgress.total || 0}`}
                 </span>
               </div>
-              <div className="viewToggle" role="tablist" aria-label="Plan and todos view">
+              <div className="viewToggle" role="tablist" aria-label={tr("plan.viewAria")}>
                 <button
                   className={`viewToggleButton ${planTodosView === "plan" ? "isActive" : ""}`}
                   type="button"
@@ -1652,7 +1686,7 @@ export default function App() {
                   aria-selected={planTodosView === "plan"}
                   onClick={() => setPlanTodosView("plan")}
                 >
-                  Plan {data.planProgress.completed}/{data.planProgress.total || 0}
+                  {tr("plan.plan")} {data.planProgress.completed}/{data.planProgress.total || 0}
                 </button>
                 <button
                   className={`viewToggleButton ${planTodosView === "todos" ? "isActive" : ""}`}
@@ -1661,29 +1695,31 @@ export default function App() {
                   aria-selected={planTodosView === "todos"}
                   onClick={() => setPlanTodosView("todos")}
                 >
-                  Todos {todoSummary.completed}/{todoSummary.total || 0}
+                  {tr("plan.todos")} {todoSummary.completed}/{todoSummary.total || 0}
                 </button>
               </div>
               {planTodosView === "plan" ? (
                 <>
                   <div className="cardHeader" style={{ marginTop: 8 }}>
-                    <span className={`pill pill-${statusTone(data.planProgress.statusPill)}`}>{data.planProgress.statusPill}</span>
+                    <span className={`pill pill-${statusTone(data.planProgress.statusPill)}`}>
+                      {translateStatus(lang, data.planProgress.statusPill)}
+                    </span>
                     <button
                       className="button"
                       type="button"
                       onClick={() => setPlanOpen((v) => !v)}
                       aria-expanded={planOpen}
                     >
-                      {planOpen ? "Hide steps" : "Show steps"}
+                      {planOpen ? tr("plan.hideSteps") : tr("plan.showSteps")}
                     </button>
                   </div>
                   <div className="kv">
                     <div className="kvRow">
-                      <div className="kvKey">NAME</div>
+                      <div className="kvKey">{tr("plan.name")}</div>
                       <div className="kvVal mono">{data.planProgress.name}</div>
                     </div>
                     <div className="kvRow">
-                      <div className="kvKey">PROGRESS</div>
+                      <div className="kvKey">{tr("plan.progress")}</div>
                       <div className="kvVal">
                         <span className="mono">
                           {data.planProgress.completed}/{data.planProgress.total || "?"}
@@ -1699,9 +1735,11 @@ export default function App() {
                     <div className="mono" style={{ fontSize: 12, lineHeight: 1.5 }}>
                       {(data.planProgress.steps ?? []).length > 0
                         ? (data.planProgress.steps ?? []).map((s, idx) => (
-                            <div key={`${idx}-${s.checked ? "x" : "_"}-${s.text}`}>[{s.checked ? "x" : " "}] {s.text || "(empty)"}</div>
+                            <div key={`${idx}-${s.checked ? "x" : "_"}-${s.text}`}>
+                              [{s.checked ? "x" : " "}] {s.text || tr("plan.emptyStep")}
+                            </div>
                           ))
-                        : "(no steps detected)"}
+                        : tr("plan.noSteps")}
                     </div>
                   ) : null}
                   <div className="progressWrap">
@@ -1719,9 +1757,9 @@ export default function App() {
                       <table className="table">
                         <thead>
                           <tr>
-                            <th>CONTENT</th>
-                            <th>STATUS</th>
-                            <th>PRIORITY</th>
+                            <th>{tr("plan.content")}</th>
+                            <th>{tr("plan.status")}</th>
+                            <th>{tr("plan.priority")}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1730,7 +1768,7 @@ export default function App() {
                               <td className="mono">{todo.content}</td>
                               <td>
                                 <span className={`pill pill-${statusTone(todo.status)}`}>
-                                  {todo.status}
+                                  {translateStatus(lang, todo.status)}
                                 </span>
                               </td>
                               <td className="mono">{todo.priority}</td>
@@ -1741,7 +1779,7 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="muted" style={{ padding: "16px 0" }}>
-                      No todos detected yet.
+                      {tr("plan.noTodos")}
                     </div>
                   )}
                 </>
@@ -1751,7 +1789,7 @@ export default function App() {
 
           <section className="card">
             <div className="cardHeader">
-              <h2>Token usage</h2>
+              <h2>{tr("tokens.title")}</h2>
               <span className="badge">{data.tokenUsage.rows.length}</span>
             </div>
 
@@ -1759,17 +1797,17 @@ export default function App() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>MODEL</th>
-                    <th>INPUT</th>
-                    <th>OUTPUT</th>
-                    <th>REASONING</th>
-                    <th>CACHE.READ</th>
-                    <th>CACHE.WRITE</th>
+                    <th>{tr("tokens.model")}</th>
+                    <th>{tr("tokens.input")}</th>
+                    <th>{tr("tokens.output")}</th>
+                    <th>{tr("tokens.reasoning")}</th>
+                    <th>{tr("tokens.cacheRead")}</th>
+                    <th>{tr("tokens.cacheWrite")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr>
-                    <td className="mono">TOTAL</td>
+                    <td className="mono">{tr("tokens.total")}</td>
                     <td className="mono">{formatTokenCount(tokenUsageTotalsForUi.input)}</td>
                     <td className="mono">{formatTokenCount(tokenUsageTotalsForUi.output)}</td>
                     <td className="mono">{formatTokenCount(tokenUsageTotalsForUi.reasoning)}</td>
@@ -1780,7 +1818,7 @@ export default function App() {
                   {tokenUsageRowsSorted.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="muted" style={{ padding: 16 }}>
-                        No token usage detected yet.
+                        {tr("tokens.empty")}
                       </td>
                     </tr>
                   ) : null}
@@ -1791,7 +1829,9 @@ export default function App() {
             {tokenUsageRowsSorted.length > 0 ? (
               <details className="details">
                 <summary className="detailsSummary">
-                  <span className="detailsTitle">Model breakdown ({tokenUsageRowsSorted.length})</span>
+                  <span className="detailsTitle">
+                    {tr("tokens.breakdown")} ({tokenUsageRowsSorted.length})
+                  </span>
                   <span className="chev" aria-hidden="true" />
                 </summary>
                 <div className="detailsBody">
@@ -1799,12 +1839,12 @@ export default function App() {
                     <table className="table">
                       <thead>
                         <tr>
-                          <th>MODEL</th>
-                          <th>INPUT</th>
-                          <th>OUTPUT</th>
-                          <th>REASONING</th>
-                          <th>CACHE.READ</th>
-                          <th>CACHE.WRITE</th>
+                          <th>{tr("tokens.model")}</th>
+                          <th>{tr("tokens.input")}</th>
+                          <th>{tr("tokens.output")}</th>
+                          <th>{tr("tokens.reasoning")}</th>
+                          <th>{tr("tokens.cacheRead")}</th>
+                          <th>{tr("tokens.cacheWrite")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1830,7 +1870,7 @@ export default function App() {
 
           <section className="card">
             <div className="cardHeader">
-              <h2>Main session tasks</h2>
+              <h2>{tr("tasks.mainTitle")}</h2>
               <span className="badge">{data.mainSessionTasks.length}</span>
             </div>
 
@@ -1838,20 +1878,20 @@ export default function App() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>DESCRIPTION</th>
-                    <th>AGENT</th>
-                    <th>LAST MODEL</th>
-                    <th>STATUS</th>
-                    <th>TOOL CALLS</th>
-                    <th>LAST TOOL</th>
-                    <th>TIMELINE</th>
+                    <th>{tr("tasks.description")}</th>
+                    <th>{tr("tasks.agent")}</th>
+                    <th>{tr("tasks.lastModel")}</th>
+                    <th>{tr("tasks.status")}</th>
+                    <th>{tr("tasks.toolCalls")}</th>
+                    <th>{tr("tasks.lastTool")}</th>
+                    <th>{tr("tasks.timeline")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.mainSessionTasks.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="muted" style={{ padding: 16 }}>
-                        No main session tasks detected yet.
+                        {tr("tasks.noMain")}
                       </td>
                     </tr>
                   ) : null}
@@ -1878,8 +1918,8 @@ export default function App() {
                                 onClick={() => toggleMainTaskExpanded(t)}
                                 aria-expanded={expanded}
                                 aria-controls={detailId}
-                                title={expanded ? "Collapse" : "Expand"}
-                                aria-label={expanded ? "Collapse tool calls" : "Expand tool calls"}
+                                title={expanded ? tr("tasks.collapse") : tr("tasks.expand")}
+                                aria-label={expanded ? tr("tasks.collapseToolCalls") : tr("tasks.expandToolCalls")}
                               />
                               <div className="bgTaskRowTitleText">
                                 <div className="taskTitle">{t.description}</div>
@@ -1900,22 +1940,29 @@ export default function App() {
                         {expanded ? (
                           <tr>
                             <td colSpan={7} className="bgTaskDetailCell">
-                              <section id={detailId} aria-label="Tool calls" className="bgTaskDetail">
+                              <section id={detailId} aria-label={tr("tasks.toolCallsAria")} className="bgTaskDetail">
                                 <div className="mono muted bgTaskDetailHeader">
-                                  Tool calls (metadata only){showLoading && toolCalls.length > 0 ? " - refreshing" : ""}
+                                  {tr("tasks.toolCallsMeta")}
+                                  {showLoading && toolCalls.length > 0 ? tr("tasks.refreshing") : ""}
                                   {showCapped
-                                    ? ` - capped${caps ? ` (max ${caps.maxMessages} messages / ${caps.maxToolCalls} tool calls)` : ""}`
+                                    ? tr("tasks.capped") +
+                                      (caps
+                                        ? translateFmt(lang, "tasks.cappedDetail", {
+                                            messages: caps.maxMessages,
+                                            calls: caps.maxToolCalls,
+                                          })
+                                        : "")
                                     : ""}
                                 </div>
 
                                 {!sessionId ? (
-                                  <div className="muted bgTaskDetailEmpty">No session id available for this task.</div>
+                                  <div className="muted bgTaskDetailEmpty">{tr("tasks.noSessionId")}</div>
                                 ) : showError ? (
-                                  <div className="muted bgTaskDetailEmpty">Tool calls unavailable.</div>
+                                  <div className="muted bgTaskDetailEmpty">{tr("tasks.toolCallsUnavailable")}</div>
                                 ) : showLoading && toolCalls.length === 0 ? (
-                                  <div className="muted bgTaskDetailEmpty">Loading tool calls...</div>
+                                  <div className="muted bgTaskDetailEmpty">{tr("tasks.loadingToolCalls")}</div>
                                 ) : empty ? (
-                                  <div className="muted bgTaskDetailEmpty">No tool calls recorded.</div>
+                                  <div className="muted bgTaskDetailEmpty">{tr("tasks.noToolCalls")}</div>
                                 ) : (
                                   <div className="bgTaskToolCallsGrid">
                                     {toolCalls.map((c) => (
@@ -1928,7 +1975,7 @@ export default function App() {
                                             {c.status}
                                           </div>
                                         </div>
-                                        <div className="mono muted bgTaskToolCallTime">{formatTime(c.createdAtMs)}</div>
+                                        <div className="mono muted bgTaskToolCallTime">{formatTime(c.createdAtMs, tr("misc.never"))}</div>
                                         <div className="mono muted bgTaskToolCallId" title={c.callId}>
                                           {c.callId}
                                         </div>
@@ -1950,7 +1997,7 @@ export default function App() {
 
           <section className="card">
             <div className="cardHeader">
-              <h2>Background tasks</h2>
+              <h2>{tr("tasks.bgTitle")}</h2>
               <span className="badge">
                 {data.backgroundTasks.length}
               </span>
@@ -1959,20 +2006,20 @@ export default function App() {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>DESCRIPTION</th>
-                    <th>AGENT</th>
-                    <th>LAST MODEL</th>
-                    <th>STATUS</th>
-                    <th>TOOL CALLS</th>
-                    <th>LAST TOOL</th>
-                    <th>TIMELINE</th>
+                    <th>{tr("tasks.description")}</th>
+                    <th>{tr("tasks.agent")}</th>
+                    <th>{tr("tasks.lastModel")}</th>
+                    <th>{tr("tasks.status")}</th>
+                    <th>{tr("tasks.toolCalls")}</th>
+                    <th>{tr("tasks.lastTool")}</th>
+                    <th>{tr("tasks.timeline")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.backgroundTasks.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="muted" style={{ padding: 16 }}>
-                        No background tasks detected yet. When you run background agents, they will appear here.
+                        {tr("tasks.noBg")}
                       </td>
                     </tr>
                   ) : null}
@@ -1999,8 +2046,8 @@ export default function App() {
                                 onClick={() => toggleBackgroundTaskExpanded(t)}
                                 aria-expanded={expanded}
                                 aria-controls={detailId}
-                                title={expanded ? "Collapse" : "Expand"}
-                                aria-label={expanded ? "Collapse tool calls" : "Expand tool calls"}
+                                title={expanded ? tr("tasks.collapse") : tr("tasks.expand")}
+                                aria-label={expanded ? tr("tasks.collapseToolCalls") : tr("tasks.expandToolCalls")}
                               />
                               <div className="bgTaskRowTitleText">
                                 <div className="taskTitle">{t.description}</div>
@@ -2021,29 +2068,36 @@ export default function App() {
                         {expanded ? (
                           <tr>
                             <td colSpan={7} className="bgTaskDetailCell">
-                              <section id={detailId} aria-label="Tool calls" className="bgTaskDetail">
+                              <section id={detailId} aria-label={tr("tasks.toolCallsAria")} className="bgTaskDetail">
                                 <div className="mono muted bgTaskDetailHeader">
-                                  Tool calls (metadata only){showLoading && toolCalls.length > 0 ? " - refreshing" : ""}
+                                  {tr("tasks.toolCallsMeta")}
+                                  {showLoading && toolCalls.length > 0 ? tr("tasks.refreshing") : ""}
                                   {showCapped
-                                    ? ` - capped${caps ? ` (max ${caps.maxMessages} messages / ${caps.maxToolCalls} tool calls)` : ""}`
+                                    ? tr("tasks.capped") +
+                                      (caps
+                                        ? translateFmt(lang, "tasks.cappedDetail", {
+                                            messages: caps.maxMessages,
+                                            calls: caps.maxToolCalls,
+                                          })
+                                        : "")
                                     : ""}
                                 </div>
 
                                 {!sessionId ? (
                                   <div className="muted bgTaskDetailEmpty">
-                                    No session id available for this task.
+                                    {tr("tasks.noSessionId")}
                                   </div>
                                 ) : showError ? (
                                   <div className="muted bgTaskDetailEmpty">
-                                    Tool calls unavailable.
+                                    {tr("tasks.toolCallsUnavailable")}
                                   </div>
                                 ) : showLoading && toolCalls.length === 0 ? (
                                   <div className="muted bgTaskDetailEmpty">
-                                    Loading tool calls...
+                                    {tr("tasks.loadingToolCalls")}
                                   </div>
                                 ) : empty ? (
                                   <div className="muted bgTaskDetailEmpty">
-                                    No tool calls recorded.
+                                    {tr("tasks.noToolCalls")}
                                   </div>
                                 ) : (
                                   <div className="bgTaskToolCallsGrid">
@@ -2057,7 +2111,7 @@ export default function App() {
                                             {c.status}
                                           </div>
                                         </div>
-                                        <div className="mono muted bgTaskToolCallTime">{formatTime(c.createdAtMs)}</div>
+                                        <div className="mono muted bgTaskToolCallTime">{formatTime(c.createdAtMs, tr("misc.never"))}</div>
                                         <div className="mono muted bgTaskToolCallId" title={c.callId}>
                                           {c.callId}
                                         </div>
@@ -2079,7 +2133,7 @@ export default function App() {
 
           <details className="details">
             <summary className="detailsSummary">
-              <span className="detailsTitle">Raw JSON</span>
+              <span className="detailsTitle">{tr("misc.rawJson")}</span>
               <span className="chev" aria-hidden="true" />
             </summary>
             <div className="detailsBody">
@@ -2092,10 +2146,10 @@ export default function App() {
 
         <footer className="footer">
           <div className="footerLeft">
-            Local-only dashboard. Served from <span className="mono">{servedFrom}</span>
+            {tr("misc.footer")} <span className="mono">{servedFrom}</span>
           </div>
           <div className="footerRight">
-            Last update: <span className="mono">{formatTime(lastUpdate)}</span>
+            {tr("misc.lastUpdate")} <span className="mono">{formatTime(lastUpdate, tr("misc.never"))}</span>
           </div>
         </footer>
       </div>
