@@ -389,6 +389,7 @@ type DashboardPayload = {
     lastUpdatedLabel: string;
     session: string;
     sessionId: string | null;
+    directory: string | null;
     statusPill: string;
   };
   planProgress: {
@@ -523,6 +524,7 @@ const FALLBACK_DATA: DashboardPayload = {
     lastUpdatedLabel: "just now",
     session: "qa-session",
     sessionId: null,
+    directory: null,
     statusPill: "busy",
   },
   planProgress: {
@@ -1013,6 +1015,7 @@ function toDashboardPayload(json: unknown): DashboardPayload {
       lastUpdatedLabel: String(main.lastUpdatedLabel ?? main.last_updated ?? "just now"),
       session: String(main.session ?? main.session_id ?? FALLBACK_DATA.mainSession.session),
       sessionId: toNonEmptyString(main.sessionId ?? main.session_id),
+      directory: toNonEmptyString(main.directory),
       statusPill: String(main.statusPill ?? main.status ?? FALLBACK_DATA.mainSession.statusPill),
     },
     planProgress: {
@@ -1666,6 +1669,10 @@ export default function App() {
               <div className="kvRow">
                 <div className="kvKey">{tr("mainSession.session")}</div>
                 <div className="kvVal mono">{localizeKnown(lang, data.mainSession.session)}</div>
+              </div>
+              <div className="kvRow">
+                <div className="kvKey">{tr("mainSession.directory")}</div>
+                <div className="kvVal mono">{data.mainSession.directory ?? "-"}</div>
               </div>
             </article>
 

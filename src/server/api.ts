@@ -15,7 +15,7 @@ type SourceStoreResolver = (opts: { sourceId: string; projectRoot: string }) => 
 export function createApi(opts: {
   store: DashboardStore
   storageRoot: string
-  projectRoot: string
+  projectRoot: string | null
   storageBackend?: StorageBackend
   getStoreForSource?: SourceStoreResolver
 }): Hono {

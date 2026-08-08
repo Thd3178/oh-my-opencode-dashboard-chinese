@@ -78,10 +78,10 @@ export function sessionExists(messageStorage: string, sessionID: string): boolea
 }
 
 export function readMainSessionMetas(
-  sessionStorage: string,
-  directoryFilter?: string
+  storageSessionDir: string,
+  directoryFilter?: string | null
 ): SessionMetadata[] {
-  if (!fs.existsSync(sessionStorage)) return []
+  if (!fs.existsSync(storageSessionDir)) return []
 
   const directoryNeedle = typeof directoryFilter === "string" && directoryFilter.length > 0
     ? ((): string => {
@@ -93,10 +93,10 @@ export function readMainSessionMetas(
 
   const metas: SessionMetadata[] = []
   try {
-    const projectDirs = fs.readdirSync(sessionStorage, { withFileTypes: true })
+    const projectDirs = fs.readdirSync(storageSessionDir, { withFileTypes: true })
     for (const dirent of projectDirs) {
       if (!dirent.isDirectory()) continue
-      const projectPath = path.join(sessionStorage, dirent.name)
+      const projectPath = path.join(storageSessionDir, dirent.name)
       for (const file of fs.readdirSync(projectPath)) {
         if (!file.endsWith(".json")) continue
         try {
@@ -125,7 +125,7 @@ export function readMainSessionMetas(
 }
 
 export function pickActiveSessionId(opts: {
-  projectRoot: string
+  projectRoot: string | null
   storage: OpenCodeStorageRoots
   boulderSessionIds?: string[]
 }): string | null {
@@ -276,7 +276,7 @@ function readLastToolPart(partStorage: string, messageID: string): { tool: strin
 }
 
 export function getMainSessionView(opts: {
-  projectRoot: string
+  projectRoot: string | null
   sessionId: string
   storage: OpenCodeStorageRoots
   sessionMeta?: SessionMetadata | null

@@ -314,7 +314,7 @@ function findTaskSessionId(opts: {
 
 export function pickActiveSessionIdSqlite(opts: {
   sqlitePath: string
-  projectRoot: string
+  projectRoot: string | null
   boulderSessionIds?: string[]
 }): SqliteDeriveResult<string | null> {
   const metasResult = readMainSessionMetasSqlite({

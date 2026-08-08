@@ -21,7 +21,9 @@ export type PlanStep = {
   text: string
 }
 
-export function readBoulderState(projectRoot: string): BoulderState | null {
+export function readBoulderState(projectRoot: string | null): BoulderState | null {
+  if (!projectRoot) return null
+
   const filePath = assertAllowedPath({
     candidatePath: path.join(projectRoot, ".sisyphus", "boulder.json"),
     allowedRoots: [projectRoot],
@@ -67,7 +69,11 @@ export function getPlanStepsFromMarkdown(content: string): PlanStep[] {
   return steps
 }
 
-export function readPlanProgress(projectRoot: string, planPath: string): PlanProgress {
+export function readPlanProgress(projectRoot: string | null, planPath: string): PlanProgress {
+  if (!projectRoot) {
+    return { total: 0, completed: 0, isComplete: false, missing: true }
+  }
+
   let planReal: string
   try {
     planReal = assertAllowedPath({
@@ -91,7 +97,11 @@ export function readPlanProgress(projectRoot: string, planPath: string): PlanPro
   }
 }
 
-export function readPlanSteps(projectRoot: string, planPath: string): { missing: boolean; steps: PlanStep[] } {
+export function readPlanSteps(projectRoot: string | null, planPath: string): { missing: boolean; steps: PlanStep[] } {
+  if (!projectRoot) {
+    return { missing: true, steps: [] }
+  }
+
   let planReal: string
   try {
     planReal = assertAllowedPath({

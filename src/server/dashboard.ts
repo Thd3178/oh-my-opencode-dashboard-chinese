@@ -26,6 +26,7 @@ export type DashboardPayload = {
     lastUpdatedLabel: string
     session: string
     sessionId: string | null
+    directory: string | null
     statusPill: string
   }
   planProgress: {
@@ -76,6 +77,7 @@ export type LegacyDashboardPayload = {
     currentTool: string
     lastUpdatedLabel: string
     session: string
+    directory: string | null
     statusPill: string
   }
   planProgress: {
@@ -153,7 +155,7 @@ function formatTimeline(startAt: number | null, endAtMs: number): string {
 }
 
 function buildDashboardPayloadFiles(opts: {
-  projectRoot: string
+  projectRoot: string | null
   storage: OpenCodeStorageRoots
   nowMs?: number
 }): DashboardPayload {
@@ -245,6 +247,7 @@ function buildDashboardPayloadFiles(opts: {
       lastUpdatedLabel: formatIso(main.lastUpdated),
       session: main.sessionLabel,
       sessionId: sessionId ?? null,
+      directory: sessionMeta?.directory ?? null,
       statusPill: mainStatusPill(main.status),
     },
     planProgress: {
@@ -288,7 +291,7 @@ function hasLegacyStorageRoots(storage: OpenCodeStorageRoots): boolean {
 }
 
 export function buildDashboardPayload(opts: {
-  projectRoot: string
+  projectRoot: string | null
   storage: OpenCodeStorageRoots
   nowMs?: number
   storageBackend?: StorageBackend
@@ -303,7 +306,7 @@ export function buildDashboardPayload(opts: {
     })
   }
 
-  const boulder = readBoulderState(opts.projectRoot)
+  const boulder = opts.projectRoot ? readBoulderState(opts.projectRoot) : null
   const planName = boulder?.plan_name ?? "(no active plan)"
   const planPath = boulder?.active_plan ?? ""
   const plan = boulder ? readPlanProgress(opts.projectRoot, boulder.active_plan) : { total: 0, completed: 0, isComplete: false, missing: true }
@@ -443,6 +446,7 @@ export function buildDashboardPayload(opts: {
       lastUpdatedLabel: formatIso(main.lastUpdated),
       session: main.sessionLabel,
       sessionId: sessionId ?? null,
+      directory: sessionMeta?.directory ?? null,
       statusPill: mainStatusPill(main.status),
     },
     planProgress: {
@@ -491,7 +495,7 @@ function watchIfExists(target: string, onChange: () => void): fs.FSWatcher | nul
 }
 
 export function createDashboardStore(opts: {
-  projectRoot: string
+  projectRoot: string | null
   storageRoot: string
   storageBackend?: StorageBackend
   pollIntervalMs?: number
@@ -511,10 +515,12 @@ export function createDashboardStore(opts: {
   }
 
   if (watch) {
-    const baseWatchers = [
-      watchIfExists(path.join(opts.projectRoot, ".sisyphus", "boulder.json"), markDirty),
-      watchIfExists(path.join(opts.projectRoot, ".sisyphus", "plans"), markDirty),
-    ]
+    const baseWatchers = opts.projectRoot
+      ? [
+          watchIfExists(path.join(opts.projectRoot, ".sisyphus", "boulder.json"), markDirty),
+          watchIfExists(path.join(opts.projectRoot, ".sisyphus", "plans"), markDirty),
+        ]
+      : []
     const backendWatchers = opts.storageBackend?.kind === "sqlite"
       ? [
           watchIfExists(opts.storageBackend.sqlitePath, markDirty),

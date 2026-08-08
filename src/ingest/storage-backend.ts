@@ -81,7 +81,7 @@ function isToolStatus(value: unknown): value is StoredToolPart["state"]["status"
 
 export function readMainSessionMetasSqlite(opts: {
   sqlitePath: string
-  directoryFilter?: string
+  directoryFilter?: string | null
 }): SqliteReadResult<SessionMetadata> {
   const directoryNeedle = typeof opts.directoryFilter === "string" && opts.directoryFilter.length > 0
     ? (() => {

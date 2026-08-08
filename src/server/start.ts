@@ -28,7 +28,9 @@ const { values, positionals } = parseArgs({
   allowPositionals: true,
 })
 
-const project = values.project ?? process.cwd()
+// When --project is omitted, track sessions from ANY working directory
+// (no directory filter; the most recently updated session wins).
+const project = values.project ?? null
 
 const port = parseInt(values.port || '51234', 10)
 const host = resolveServerHost({ cliHost: values.host, envHost: process.env.OMO_DASHBOARD_HOST })
@@ -39,7 +41,7 @@ if (cleanedPositionals[0] === Bun.argv[1]) cleanedPositionals.shift()
 const command = cleanedPositionals[0]
 
 if (command === "add") {
-  const projectRoot = project
+  const projectRoot = values.project ?? process.cwd()
   if (!fs.existsSync(projectRoot)) {
     console.error("Project path does not exist.")
     process.exit(1)
@@ -84,7 +86,7 @@ const store = createDashboardStore({
 })
 
 const storeBySourceId = new Map<string, DashboardStore>()
-const storeByProjectRoot = new Map<string, DashboardStore>([[project, store]])
+const storeByProjectRoot = new Map<string | null, DashboardStore>([[project, store]])
 
 const getStoreForSource = ({ sourceId, projectRoot }: { sourceId: string; projectRoot: string }) => {
   const existing = storeBySourceId.get(sourceId)

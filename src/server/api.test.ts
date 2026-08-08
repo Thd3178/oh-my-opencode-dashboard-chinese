@@ -91,15 +91,16 @@ function hasKey(value: unknown, key: string): boolean {
 
 const createStore = (): DashboardStore => ({
   getSnapshot: (): DashboardPayload => ({
-    mainSession: {
-      agent: "x",
-      currentModel: null,
-      currentTool: "-",
-      lastUpdatedLabel: "never",
-      session: "s",
-      sessionId: null,
-      statusPill: "idle",
-    },
+      mainSession: {
+        agent: "a",
+        currentModel: null,
+        currentTool: "t",
+        lastUpdatedLabel: "never",
+        session: "s",
+        sessionId: null,
+        directory: null,
+        statusPill: "idle",
+      },
     planProgress: { name: "p", completed: 0, total: 0, path: "", statusPill: "not started", steps: [] as PlanStep[] },
     backgroundTasks: [],
     mainSessionTasks: [],

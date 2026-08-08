@@ -82,7 +82,7 @@ oh-my-opencode-dashboard
 
 Options:
 
-- `--project <path>` (optional): project root used for plan lookup + session filtering (defaults to current working directory)
+- `--project <path>` (optional): project root used for plan lookup + session filtering. Omit it to track sessions from **any** working directory (most recent session wins); when provided, only sessions whose directory exactly matches are shown.
 - `--host <hostname>` (optional): server bind host (defaults to `127.0.0.1`; can also be set with `OMO_DASHBOARD_HOST`)
 - `--port <number>` (optional): default 51234
 
@@ -145,6 +145,7 @@ The dashboard uses best-effort file watching for `opencode.db` plus the WAL side
 
 - If `.sisyphus/boulder.json` exists, it prefers the most recent `session_ids[]` entry that exists on disk.
 - Otherwise it falls back to the most recently updated OpenCode session whose `meta.directory` exactly matches your `--project` path (realpath-normalized).
+- **No `--project` given (any-directory mode):** the dashboard does not filter by directory at all — it shows the most recently updated session across *all* working directories, so you can run the dashboard from anywhere and still see what agents are doing. The session's working directory is shown in the Main session card.
 
 ## Vanilla OpenCode (No OhMyOpenCode)
 
