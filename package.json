@@ -18,7 +18,8 @@
     "vite.config.ts",
     "tsconfig.json",
     "dashboard-ui.png",
-    "README.md"
+    "README.md",
+    "README.zh-CN.md"
   ],
   "publishConfig": {
     "access": "public"

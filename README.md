@@ -2,6 +2,8 @@
 
 Local-only, read-only dashboard for viewing OpenCode & OhMyOpenCode agent progress.
 
+> **Fork feature:** this fork adds a **中文 / English language toggle** and an **any-directory mode** (no `--project` needed). See [中文文档](./README.zh-CN.md).
+
 ![Dashboard GUI](./gui.png)
 
 ## Goals
@@ -13,7 +15,8 @@ Local-only, read-only dashboard for viewing OpenCode & OhMyOpenCode agent progre
 
 ## What You Can See
 
-- Main session: agent, current tool/model, session label/id, last update, status.
+- **Chinese / English language toggle** (top bar): click `中文` to switch the whole UI to Chinese, click `EN` to switch back. The choice is remembered in localStorage.
+- Main session: agent, current tool/model, session label/id, last update, status, **working directory**.
 - Plan progress: checkbox progress + optional step list (parsed from plan markdown).
 - Main session task row: a single roll-up row for the detected main session.
 - Source dropdown (optional): switch between registered project sources; each source shows its active main session.
@@ -23,6 +26,14 @@ Local-only, read-only dashboard for viewing OpenCode & OhMyOpenCode agent progre
 - Time-series activity: last 5 minutes of tool-call counts (main agents + background total).
 - Sound notifications (optional): dings when progress advances / question appears / waiting for user.
 - Raw JSON (redacted): copy the API payload that the UI is rendering.
+
+## Language
+
+The dashboard defaults to English (identical to the upstream UI). Click the **`中文`** button in the top bar to switch the entire UI to Chinese; click **`EN`** to switch back to English.
+
+- The choice is persisted in `localStorage` (`omoDashboardLang`) and survives page reloads.
+- Server-side data (the Raw JSON view) always stays in its original English form; only the rendered labels are localized.
+- Status words coming from the server payload are mapped at render time (e.g. `busy` → 忙碌, `in progress` → 进行中). Unknown values pass through unchanged.
 
 ## Requirements
 
